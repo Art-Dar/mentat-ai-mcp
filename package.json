@@ -1,0 +1,33 @@
+{
+  "name": "mentat-ai-mcp",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000m\u0000e\u0000n\u0000t\u0000a\u0000t\u0000-\u0000a\u0000i\u0000-\u0000m\u0000c\u0000p\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Art-Dar/mentat-ai-mcp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Art-Dar/mentat-ai-mcp/issues"
+  },
+  "homepage": "https://github.com/Art-Dar/mentat-ai-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}
