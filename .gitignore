@@ -32,7 +32,6 @@ coverage/
 
 # Environment variables
 .env
-.env.*
 
 # TypeScript
 *.tsbuildinfo
