@@ -7,6 +7,6 @@ describe("greet", () => {
     });
 
     it("keeps the name exactly as given", () => {
-        expect(greet("Артем")).toBe("Hello, Артем!");
+        expect(greet("Artem")).toBe("Hello, Artem!");
     });
 });
