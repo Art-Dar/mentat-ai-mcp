@@ -48,6 +48,26 @@ describe("search_knowledge tool", () => {
     });
   });
 
+  it("gives the model formatted text, not raw JSON", async () => {
+    const c = await connect(fakeFetch(() => json(searchResponse())).fetch);
+    const result = await search(c, { query: "coffee invoice" });
+    const text = textOf(result);
+
+    expect(text.startsWith("Found 1 passage")).toBe(true);
+    expect(text).toContain('[1] Invoice 2026-0042 (pdf, pages 1-2)');
+    expect(() => JSON.parse(text)).toThrow();
+  });
+
+  it("tells the model when nothing matched", async () => {
+    const c = await connect(fakeFetch(() => json(searchResponse([]))).fetch);
+    const result = await search(c, { query: "unicorns" });
+
+    expect(result.isError).toBeFalsy();
+    // The fake backend echoes the fixture's query, so check the message, not the query.
+    expect(textOf(result)).toMatch(/^No passages in the user's Mentat knowledge base matched "/);
+  });
+
+
   it("sends the default top_k when the model leaves it out", async () => {
     const { fetch, calls } = fakeFetch(() => json(searchResponse()));
     const c = await connect(fetch);
