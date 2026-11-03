@@ -6,6 +6,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import type { MentatClient } from "../../mentat/client.js";
 import { MentatApiError, MentatError } from "../../mentat/errors.js";
+import { formatSearchText } from "./format.js";
 import { toSearchOutput } from "./map.js";
 import {
   SEARCH_KNOWLEDGE_DESCRIPTION,
