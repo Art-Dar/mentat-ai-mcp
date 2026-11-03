@@ -33,16 +33,16 @@ export function registerSearchKnowledge(server: McpServer, client: MentatClient)
 }
 
 export async function runSearch(
-  client: MentatClient,
-  { query, top_k }: SearchKnowledgeInput,
+    client: MentatClient,
+    { query, top_k }: SearchKnowledgeInput,
 ): Promise<CallToolResult> {
   try {
     const output = toSearchOutput(await client.search({ query, top_k }));
     return {
+      // JSON for clients that read structured results...
       structuredContent: output,
-      // TODO(next subtask "Format results for the model"): replace with
-      // compact, citation-first text. JSON keeps this subtask testable now.
-      content: [{ type: "text", text: JSON.stringify(output) }],
+      // ...and compact, citation-first text for the model.
+      content: [{ type: "text", text: formatSearchText(output) }],
     };
   } catch (error) {
     return { isError: true, content: [{ type: "text", text: describeFailure(error) }] };
