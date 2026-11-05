@@ -39,6 +39,29 @@ export function searchResponse(citations = [citation()]) {
   };
 }
 
+/** Shaped like the real POST /api/v1/ask response: citations carry no `text`. */
+export function askResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    answer: "The total due is 349.50 UAH [1].",
+    question: "What is the total due?",
+    search_query: "total due",
+    cited_markers: ["[1]"],
+    grounded: true,
+    retrieval: {
+      citations: [citation({ text: null })],
+      documents: [],
+      tags: [],
+      document_count: 1,
+      chunk_count: 1,
+    },
+    conversation_id: null,
+    message_id: null,
+    dropped_sources: 0,
+    truncated: false,
+    ...overrides,
+  };
+}
+
 export interface RecordedCall {
   url: string;
   init: RequestInit;

@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createHttpApp } from "../src/http-app.js";
 import { createMentatClient } from "../src/mentat/client.js";
+import { ASK_KNOWLEDGE_NAME } from "../src/tools/ask-knowledge/schema.js";
 import { SEARCH_KNOWLEDGE_NAME } from "../src/tools/search-knowledge/schema.js";
 import { fakeFetch, json, searchResponse } from "./fixtures.js";
 
@@ -69,7 +70,7 @@ describe("HTTP transport", () => {
   it("lists the same tools as stdio", async () => {
     const c = await connect(await start());
     const { tools } = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["hello", SEARCH_KNOWLEDGE_NAME]);
+    expect(tools.map((t) => t.name).sort()).toEqual([ASK_KNOWLEDGE_NAME, "hello", SEARCH_KNOWLEDGE_NAME]);
   });
 
   it("runs search_knowledge against the backend", async () => {
