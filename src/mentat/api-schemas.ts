@@ -36,6 +36,25 @@ export const SearchResponseSchema = z.object({
 });
 export type SearchResponse = z.infer<typeof SearchResponseSchema>;
 
+export const ASK_PATH = "/api/v1/ask";
+
+export const AskRequestBodySchema = z.object({
+  question: z.string().min(1).max(1000),
+  conversation_id: z.uuid().optional(),
+});
+export type AskRequestBody = z.infer<typeof AskRequestBodySchema>;
+
+export const AskResponseSchema = z.object({
+  answer: z.string(),
+  grounded: z.boolean(),
+  truncated: z.boolean(),
+  cited_markers: z.array(z.string()),
+  // /ask sends the short quote only: `text` is null on these citations
+  retrieval: z.object({ citations: z.array(CitationSchema) }),
+  conversation_id: z.uuid().nullable(),
+});
+export type AskResponse = z.infer<typeof AskResponseSchema>;
+
 export const ApiErrorSchema = z.object({
   error: z.object({
     code: z.string(),

@@ -6,6 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { greet, helloInputSchema } from "./hello.js";
 import type { MentatClient } from "./mentat/client.js";
+import { registerAskKnowledge } from "./tools/ask-knowledge/register.js";
 import { registerSearchKnowledge } from "./tools/search-knowledge/register.js";
 
 export const SERVER_NAME = "mentat-ai-mcp";
@@ -24,5 +25,6 @@ export function createServer(deps: { mentat: MentatClient }): McpServer {
   );
 
   registerSearchKnowledge(server, deps.mentat);
+  registerAskKnowledge(server, deps.mentat);
   return server;
 }

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createMentatClient } from "../src/mentat/client.js";
 import { createServer } from "../src/server.js";
+import { ASK_KNOWLEDGE_NAME } from "../src/tools/ask-knowledge/schema.js";
 import { SEARCH_KNOWLEDGE_NAME } from "../src/tools/search-knowledge/schema.js";
 import { fakeFetch, json, searchResponse } from "./fixtures.js";
 
@@ -34,7 +35,7 @@ describe("search_knowledge tool", () => {
   it("is listed next to hello", async () => {
     const c = await connect(fakeFetch(() => json(searchResponse())).fetch);
     const { tools } = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["hello", SEARCH_KNOWLEDGE_NAME]);
+    expect(tools.map((t) => t.name).sort()).toEqual([ASK_KNOWLEDGE_NAME, "hello", SEARCH_KNOWLEDGE_NAME]);
   });
 
   it("returns mapped results as structured content", async () => {
