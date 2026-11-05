@@ -102,14 +102,41 @@ describe("ask_knowledge tool", () => {
     expect(text).toBe("Mentat ask failed: Mentat returned HTTP 404.");
   });
 
-  it("says a retry is safe when the answering model is down", async () => {
-    const c = await connect(
-      fakeFetch(() => json({ error: { code: "unavailable", message: "Model unavailable", request_id: "ab12" } }, 503)).fetch,
-    );
-    const result = await ask(c, { question: "q" });
+  const overloaded = () =>
+    json({ error: { code: "http_error", message: "Model unavailable", request_id: "ab12" } }, 503);
+  const OVERLOADED_TEXT = "Mentat's answering service is overloaded or unavailable right now (request ab12). Try again in a moment.";
+
+  it("says try again when the backend answers 503", async () => {
+    const result = await ask(await connect(fakeFetch(overloaded).fetch), { question: "q" });
 
     expect(result.isError).toBe(true);
-    expect(textOf(result)).toBe("Mentat ask failed: Model unavailable (request ab12). It is safe to try once more.");
+    expect(textOf(result)).toBe(OVERLOADED_TEXT);
+  });
+
+  it("says try again on a 503 inside a conversation too, because nothing was saved", async () => {
+    const c = await connect(fakeFetch(overloaded).fetch);
+    expect(textOf(await ask(c, { question: "q", conversation_id: DOC_ID }))).toBe(OVERLOADED_TEXT);
+  });
+
+  it("says try again on a 503 with no error envelope, as from a gateway", async () => {
+    const c = await connect(fakeFetch(() => new Response("busy", { status: 503 })).fetch);
+    expect(textOf(await ask(c, { question: "q" }))).toBe(
+      "Mentat's answering service is overloaded or unavailable right now. Try again in a moment.",
+    );
+  });
+
+  it("does not treat other server errors as overload", async () => {
+    const c = await connect(
+      fakeFetch(() => json({ error: { code: "http_error", message: "Answering is misconfigured" } }, 500)).fetch,
+    );
+    expect(textOf(await ask(c, { question: "q" }))).toContain("Mentat ask failed: Answering is misconfigured");
+  });
+
+  it("reports the 60 s timeout", async () => {
+    const c = await connect(fakeFetch(() => Promise.reject(new DOMException("timed out", "TimeoutError"))).fetch);
+    expect(textOf(await ask(c, { question: "q" }))).toBe(
+      "Mentat did not respond within 60s. It is safe to try once more.",
+    );
   });
 
   it("says a retry is safe after losing a standalone request", async () => {

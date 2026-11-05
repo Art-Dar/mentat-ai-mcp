@@ -13,7 +13,7 @@ import { createRequester, type RequesterOptions } from "./request.js";
 
 export { DEFAULT_TIMEOUT_MS } from "./request.js";
 
-// /ask calls an LLM: 2-10 s normally
+// /ask calls an LLM: 2-10 s normally; Claude waits up to 240 s
 export const ASK_TIMEOUT_MS = 60_000;
 
 export interface MentatClient {
