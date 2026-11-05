@@ -1,7 +1,7 @@
 // Turning retrieved passages into text the model reads.
 
-// server quotes are ~240 chars
-export const QUOTE_MAX_CHARS = 400;
+// server passages are one chunk, ~1000 chars
+export const QUOTE_MAX_CHARS = 1200;
 export const TITLE_MAX_CHARS = 120;
 export const LOW_OCR_CONFIDENCE = 60;
 

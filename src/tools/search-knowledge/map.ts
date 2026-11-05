@@ -14,7 +14,8 @@ export function toResult(citation: Citation): SearchKnowledgeResult {
     title: citation.title,
     source: citation.source,
     locator: citation.locator,
-    quote: citation.quote,
+    // The answer can sit past the short quote, so the model gets the whole passage.
+    quote: citation.text || citation.quote,
     similarity: citation.similarity,
     from_ocr: citation.from_ocr,
     ocr_confidence: citation.ocr_confidence,
