@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createMentatClient } from "../src/mentat/client.js";
-import { MentatContractError } from "../src/mentat/errors.js";
+import { MentatApiError, MentatContractError, MentatUnavailableError } from "../src/mentat/errors.js";
 import { askResponse, DOC_ID, fakeFetch, json, searchResponse } from "./fixtures.js";
 
 function client(fetch: typeof globalThis.fetch) {
@@ -70,5 +70,26 @@ describe("MentatClient.ask", () => {
     const error = await client(fetch).ask({ question: "q" }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(MentatContractError);
     expect((error as Error).message).toContain("ask response");
+  });
+
+  // The message reports the timeout the call was made with.
+  const timedOut = () => Promise.reject(new DOMException("timed out", "TimeoutError"));
+
+  it("waits 60 s, longer than the default for other calls", async () => {
+    const { fetch } = fakeFetch(timedOut);
+    const askError = await client(fetch).ask({ question: "q" }).catch((e: unknown) => e);
+    const searchError = await client(fetch).search({ query: "q" }).catch((e: unknown) => e);
+
+    expect(askError).toBeInstanceOf(MentatUnavailableError);
+    expect((askError as Error).message).toBe("Mentat did not respond within 60s.");
+    expect((searchError as Error).message).toBe("Mentat did not respond within 15s.");
+  });
+
+  it("raises the shared error type for a 503", async () => {
+    const { fetch } = fakeFetch(() => json({ error: { code: "http_error", message: "Model down" } }, 503));
+    const error = await client(fetch).ask({ question: "q" }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(MentatApiError);
+    expect((error as MentatApiError).retryable).toBe(true);
   });
 });

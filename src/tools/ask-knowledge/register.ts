@@ -44,19 +44,26 @@ export async function runAsk(
       content: [{ type: "text", text: formatAskText(output) }],
     };
   } catch (error) {
-    const text = conversation_id ? describeConversationFailure(error) : describeFailure(error, "ask");
-    return { isError: true, content: [{ type: "text", text }] };
+    return { isError: true, content: [{ type: "text", text: describeAskFailure(error, conversation_id) }] };
   }
 }
 
-function describeConversationFailure(error: unknown): string {
-  // Same 404 for "not yours" and "does not exist". The code rules out a proxy's 404.
-  if (error instanceof MentatApiError && error.code === "not_found") {
-    return "Mentat has no conversation with that conversation_id. Check the id with the user, or ask again without it.";
+function describeAskFailure(error: unknown, conversationId: string | undefined): string {
+  // 503 means nothing was saved, so it is safe to repeat even inside a conversation.
+  // The backend has no separate code for "LLM overloaded", so the wording covers its other 503s too.
+  if (error instanceof MentatApiError && error.status === 503) {
+    const ref = error.requestId ? ` (request ${error.requestId})` : "";
+    return `Mentat's answering service is overloaded or unavailable right now${ref}. Try again in a moment.`;
   }
-  // The backend may have finished and saved the exchange after we stopped waiting.
-  if (error instanceof MentatUnavailableError) {
-    return `${error.message} The exchange may already be in the conversation, so check with the user before asking again.`;
+  if (conversationId) {
+    // Same 404 for "not yours" and "does not exist". The code rules out a proxy's 404.
+    if (error instanceof MentatApiError && error.code === "not_found") {
+      return "Mentat has no conversation with that conversation_id. Check the id with the user, or ask again without it.";
+    }
+    // The backend may have finished and saved the exchange after we stopped waiting.
+    if (error instanceof MentatUnavailableError) {
+      return `${error.message} The exchange may already be in the conversation, so check with the user before asking again.`;
+    }
   }
   return describeFailure(error, "ask");
 }
