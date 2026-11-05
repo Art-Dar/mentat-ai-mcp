@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { createMentatClient } from "../src/mentat/client.js";
-import { MentatContractError } from "../src/mentat/errors.js";
-import { fakeFetch, json, searchResponse } from "./fixtures.js";
+import { MentatApiError, MentatContractError, MentatUnavailableError } from "../src/mentat/errors.js";
+import { askResponse, DOC_ID, fakeFetch, json, searchResponse } from "./fixtures.js";
 
 function client(fetch: typeof globalThis.fetch) {
   return createMentatClient({ baseUrl: "http://mentat.test", token: "t", fetch });
@@ -33,5 +33,63 @@ describe("MentatClient.search", () => {
     const error = await client(fetch).search({ query: "q" }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(MentatContractError);
     expect((error as Error).message).toContain("search response");
+  });
+});
+
+describe("MentatClient.ask", () => {
+  it("POSTs the question to /api/v1/ask", async () => {
+    const { fetch, calls } = fakeFetch(() => json(askResponse()));
+    await client(fetch).ask({ question: "What is due?", conversation_id: DOC_ID });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe("http://mentat.test/api/v1/ask");
+    expect(calls[0]?.init.method).toBe("POST");
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ question: "What is due?", conversation_id: DOC_ID });
+  });
+
+  it("leaves conversation_id out of the body when it is not set", async () => {
+    const { fetch, calls } = fakeFetch(() => json(askResponse()));
+    await client(fetch).ask({ question: "What is due?", conversation_id: undefined });
+
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ question: "What is due?" });
+  });
+
+  it("returns the parsed response and strips fields it does not read", async () => {
+    const { fetch } = fakeFetch(() => json(askResponse()));
+    const result = await client(fetch).ask({ question: "q" });
+
+    expect(result.answer).toContain("[1]");
+    expect(result.retrieval.citations[0]?.marker).toBe("[1]");
+    expect(result.retrieval.citations[0]).not.toHaveProperty("chunk_id");
+    expect(result).not.toHaveProperty("search_query");
+    expect(result).not.toHaveProperty("dropped_sources");
+  });
+
+  it("raises a contract error when the answer is missing", async () => {
+    const { fetch } = fakeFetch(() => json({ grounded: true }));
+    const error = await client(fetch).ask({ question: "q" }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(MentatContractError);
+    expect((error as Error).message).toContain("ask response");
+  });
+
+  // The message reports the timeout the call was made with.
+  const timedOut = () => Promise.reject(new DOMException("timed out", "TimeoutError"));
+
+  it("waits 60 s, longer than the default for other calls", async () => {
+    const { fetch } = fakeFetch(timedOut);
+    const askError = await client(fetch).ask({ question: "q" }).catch((e: unknown) => e);
+    const searchError = await client(fetch).search({ query: "q" }).catch((e: unknown) => e);
+
+    expect(askError).toBeInstanceOf(MentatUnavailableError);
+    expect((askError as Error).message).toBe("Mentat did not respond within 60s.");
+    expect((searchError as Error).message).toBe("Mentat did not respond within 15s.");
+  });
+
+  it("raises the shared error type for a 503", async () => {
+    const { fetch } = fakeFetch(() => json({ error: { code: "http_error", message: "Model down" } }, 503));
+    const error = await client(fetch).ask({ question: "q" }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(MentatApiError);
+    expect((error as MentatApiError).retryable).toBe(true);
   });
 });
