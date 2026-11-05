@@ -43,8 +43,9 @@ describe("formatAskText", () => {
     );
   });
 
-  it("warns when the answer cites nothing, but still lists what was consulted", () => {
+  it("shows an ungrounded answer as not found, but still lists what was consulted", () => {
     const text = formatAskText(output({ grounded: false, cited_markers: [] }));
+    expect(text).toContain("Not found in your documents");
     expect(text).toContain("do not present it as verified");
     expect(text).not.toContain("Cited in the answer");
     expect(text).toContain("[1] Invoice 2026-0042");
@@ -54,6 +55,10 @@ describe("formatAskText", () => {
     const text = formatAskText(output({ grounded: false, cited_markers: [], sources: [] }));
     expect(text).not.toContain("Sources:");
     expect(text).not.toContain(SOURCE_NOTE);
+  });
+
+  it("says nothing about not found when the answer is grounded", () => {
+    expect(formatAskText(output())).not.toContain("Not found");
   });
 
   it("warns when the answer may be cut off", () => {

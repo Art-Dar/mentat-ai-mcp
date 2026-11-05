@@ -18,7 +18,7 @@ export const ASK_KNOWLEDGE_DESCRIPTION = [
     "Do not use it for general-knowledge questions that do not depend on the user's own documents.",
     "",
     "Returns the answer, the sources it drew on with markers like [1], and which markers the answer cites. Keep those markers when you relay the answer. " +
-    "If grounded is false, the answer cites no source: do not present it as verified. If truncated is true, the answer may end mid-sentence.",
+    'If grounded is false, tell the user it was "not found in your documents": the answer cites no source, so do not present it as verified. If truncated is true, the answer may end mid-sentence.',
     "",
     `Write the question as a complete, self-contained sentence of up to ${QUESTION_MAX_CHARS.toLocaleString("en-US")} characters.`,
     "Omit conversation_id for a standalone question: nothing is saved and no id is created. " +
@@ -51,7 +51,7 @@ export type AskKnowledgeInput = z.infer<typeof AskKnowledgeInputSchema>;
 
 export const askKnowledgeOutputShape = {
   answer: z.string().describe("The written answer, with citation markers like [1] in the text."),
-  grounded: z.boolean().describe("False when the answer cites no source, so it must not be presented as verified."),
+  grounded: z.boolean().describe('False when the answer cites no source: show it as "not found in your documents", not as verified.'),
   truncated: z.boolean().describe("True if the answer hit the length limit and may end mid-sentence."),
   cited_markers: z.array(z.string()).describe('Markers the answer actually cites, e.g. ["[1]", "[3]"].'),
   sources: z.array(SearchKnowledgeResultSchema).describe("Passages retrieved for the answer. Some may not be cited."),

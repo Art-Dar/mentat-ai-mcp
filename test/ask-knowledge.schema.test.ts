@@ -93,7 +93,7 @@ describe("ask_knowledge description", () => {
   });
 
   it("explains the grounded and truncated flags", () => {
-    expect(ASK_KNOWLEDGE_DESCRIPTION).toContain("If grounded is false");
+    expect(ASK_KNOWLEDGE_DESCRIPTION).toContain('If grounded is false, tell the user it was "not found in your documents"');
     expect(ASK_KNOWLEDGE_DESCRIPTION).toContain("If truncated is true");
   });
 

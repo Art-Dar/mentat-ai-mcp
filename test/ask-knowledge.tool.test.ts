@@ -62,6 +62,16 @@ describe("ask_knowledge tool", () => {
     expect(() => JSON.parse(text)).toThrow();
   });
 
+  it("shows an ungrounded answer as not found in your documents", async () => {
+    const ungrounded = askResponse({ answer: "I could not find that.", grounded: false, cited_markers: [] });
+    const c = await connect(fakeFetch(() => json(ungrounded)).fetch);
+    const result = await ask(c, { question: "What is my passport number?" });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({ grounded: false });
+    expect(textOf(result)).toContain("Not found in your documents");
+  });
+
   it("sends only the question when no conversation is given", async () => {
     const { fetch, calls } = fakeFetch(() => json(askResponse()));
     await ask(await connect(fetch), { question: "What is due?" });
