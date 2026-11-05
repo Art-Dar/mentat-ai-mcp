@@ -34,8 +34,8 @@ export const saveNoteInputShape = {
     text: z
         .string()
         .trim()
-        .min(1)
-        .max(NOTE_TEXT_MAX_CHARS)
+        .min(1, "The note is empty. Nothing was saved.")
+        .max(NOTE_TEXT_MAX_CHARS, NOTE_TOO_LONG_MESSAGE)
         .describe("The note to save, exactly as it should be kept."),
     title: z
         .string()
@@ -56,7 +56,7 @@ export const saveNoteOutputShape = {
     title: z.string().nullable().describe("Title the note was saved with, if any."),
     status: z
         .string()
-        .describe("Ingestion status: pending, processing, completed, failed. Only completed notes are searchable."),
+        .describe("Ingestion status: pending, processing, completed or failed. Only completed notes are searchable."),
 };
 
 export const SaveNoteOutputSchema = z.object(saveNoteOutputShape);
