@@ -49,7 +49,7 @@ export async function runSearch(
   }
 }
 
-export function describeFailure(error: unknown): string {
+export function describeFailure(error: unknown, action = "search"): string {
   if (error instanceof MentatApiError) {
     if (error.status === 401 || error.status === 403) {
       return "Mentat rejected the credentials. The user needs to reconnect Mentat.";
@@ -57,12 +57,12 @@ export function describeFailure(error: unknown): string {
     const ref = error.requestId ? ` (request ${error.requestId})` : "";
     const hint = error.retryable ? " It is safe to try once more." : "";
     const reason = error.message.replace(/\.+$/, "");
-    return `Mentat search failed: ${reason}${ref}.${hint}`;
+    return `Mentat ${action} failed: ${reason}${ref}.${hint}`;
   }
   if (error instanceof MentatError) {
     return error.retryable ? `${error.message} It is safe to try once more.` : error.message;
   }
   // Unexpected bug in this connector: log details for us, keep the model's message generic.
-  console.error("search_knowledge: unexpected error", error);
-  return "Mentat search failed because of an internal error in the connector.";
+  console.error(`Mentat ${action}: unexpected error`, error);
+  return `Mentat ${action} failed because of an internal error in the connector.`;
 }
