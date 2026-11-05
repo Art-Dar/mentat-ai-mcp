@@ -21,7 +21,7 @@ const mentat = createMentatClient({
 
 const app = createHttpApp({ mentat, secret: config.secret, allowedHosts: config.allowedHosts });
 
-app.listen(config.port, BIND_HOST, (error) => {
+app.listen(config.port, BIND_HOST, (error?: Error) => {
   if (error) {
     console.error(`Could not listen on ${BIND_HOST}:${config.port}: ${error.message}`);
     process.exit(1);
