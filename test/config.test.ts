@@ -5,7 +5,14 @@ import process from "node:process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { DEFAULT_API_URL, DEFAULT_ENV_FILE, loadConfig } from "../src/config.js";
+import {
+  DEFAULT_API_URL,
+  DEFAULT_ENV_FILE,
+  DEFAULT_MCP_PORT,
+  loadConfig,
+  loadHttpConfig,
+  MIN_MCP_SECRET_LENGTH,
+} from "../src/config.js";
 import { DEFAULT_TIMEOUT_MS } from "../src/mentat/client.js";
 
 let dir: string | undefined;
@@ -93,5 +100,71 @@ describe("loadConfig", () => {
   it("looks for .env in the repo root, not the current folder", () => {
     expect(DEFAULT_ENV_FILE.replaceAll("\\", "/")).toMatch(/\/\.env$/);
     expect(DEFAULT_ENV_FILE.replaceAll("\\", "/")).not.toContain("/src/");
+  });
+});
+
+describe("loadHttpConfig", () => {
+  const SECRET = "a".repeat(MIN_MCP_SECRET_LENGTH);
+
+  it("uses defaults for everything but the secret", () => {
+    expect(loadHttpConfig({ envFile: NO_FILE, env: { MCP_SECRET: SECRET } })).toEqual({
+      apiUrl: DEFAULT_API_URL,
+      apiToken: undefined,
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      secret: SECRET,
+      allowedHosts: [],
+      port: DEFAULT_MCP_PORT,
+    });
+  });
+
+  it("reads values from the .env file", () => {
+    const path = envFile(`MCP_SECRET=${SECRET}\nMCP_ALLOWED_HOSTS=demo.tunnel.test\nMCP_PORT=4000\n`);
+    expect(loadHttpConfig({ envFile: path, env: {} })).toMatchObject({
+      secret: SECRET,
+      allowedHosts: ["demo.tunnel.test"],
+      port: 4000,
+    });
+  });
+
+  it("splits and normalizes the allowed hosts", () => {
+    const env = { MCP_SECRET: SECRET, MCP_ALLOWED_HOSTS: " One.tunnel.test, two.tunnel.test ,," };
+    expect(loadHttpConfig({ envFile: NO_FILE, env }).allowedHosts).toEqual(["one.tunnel.test", "two.tunnel.test"]);
+  });
+
+  it("accepts a secret of exactly the minimum length", () => {
+    expect(() => loadHttpConfig({ envFile: NO_FILE, env: { MCP_SECRET: SECRET } })).not.toThrow();
+  });
+
+  it.each([
+    ["missing", {}],
+    ["empty", { MCP_SECRET: "  " }],
+    ["one character too short", { MCP_SECRET: "a".repeat(MIN_MCP_SECRET_LENGTH - 1) }],
+    ["not URL-safe", { MCP_SECRET: `${SECRET}/?` }],
+  ])("refuses a secret that is %s", (_label, env) => {
+    expect(() => loadHttpConfig({ envFile: NO_FILE, env })).toThrow(/Invalid configuration:[\s\S]*MCP_SECRET/);
+  });
+
+  it("does not put the rejected secret in the error", () => {
+    const short = "short-secret-value";
+    expect(() => loadHttpConfig({ envFile: NO_FILE, env: { MCP_SECRET: short } })).toThrow(
+        expect.objectContaining({ message: expect.not.stringContaining(short) }),
+    );
+  });
+
+  it.each(["https://demo.tunnel.test", "demo.tunnel.test:443", "demo.tunnel.test/mcp"])(
+      "refuses %s as an allowed host",
+      (host) => {
+        const env = { MCP_SECRET: SECRET, MCP_ALLOWED_HOSTS: host };
+        expect(() => loadHttpConfig({ envFile: NO_FILE, env })).toThrow(/MCP_ALLOWED_HOSTS/);
+      },
+  );
+
+  it.each(["0", "70000", "http"])("refuses %s as a port", (port) => {
+    const env = { MCP_SECRET: SECRET, MCP_PORT: port };
+    expect(() => loadHttpConfig({ envFile: NO_FILE, env })).toThrow(/MCP_PORT/);
+  });
+
+  it("leaves stdio working without a secret", () => {
+    expect(() => loadConfig({ envFile: NO_FILE, env: {} })).not.toThrow();
   });
 });

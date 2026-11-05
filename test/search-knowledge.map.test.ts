@@ -31,6 +31,20 @@ describe("toSearchOutput", () => {
     });
   });
 
+  it("gives the model the whole passage, not the short quote", () => {
+    const raw = searchResponse([citation({ quote: "Start of the…", text: "Start of the invoice. Total due: 160.00 EUR" })]);
+    expect(toSearchOutput(parse(raw)).results[0]?.quote).toBe("Start of the invoice. Total due: 160.00 EUR");
+  });
+
+  it.each([
+    ["missing", {}],
+    ["null", { text: null }],
+    ["empty", { text: "" }],
+  ])("falls back to the quote when the passage is %s", (_label, overrides) => {
+    const raw = searchResponse([citation({ quote: "Short quote", ...overrides })]);
+    expect(toSearchOutput(parse(raw)).results[0]?.quote).toBe("Short quote");
+  });
+
   it("keeps the order and markers the backend gave", () => {
     const raw = searchResponse([
       citation({ marker: "[1]", title: "First" }),

@@ -22,7 +22,10 @@ export const CitationSchema = z.object({
   ocr_confidence: z.number().nullable(),
   similarity: z.number(),
   url: z.string().nullable(),
+  // Footnote-sized excerpt from the start of the passage
   quote: z.string(),
+  // The whole passage. Absent on a backend older than this field.
+  text: z.string().nullish(),
 });
 export type Citation = z.infer<typeof CitationSchema>;
 
