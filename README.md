@@ -77,13 +77,22 @@ The [Demo](#demo) section has the full first-time setup and troubleshooting.
 
 ### In Claude Code, as a plugin
 
-The `plugin/` folder is a Claude Code plugin: the connector plus the Mentat skill.
+This repository is also a plugin marketplace. Install the `mentat` plugin, which bundles the connector and the Mentat skill, in one step:
 
-```bash
-claude --plugin-dir ./plugin
+```
+/plugin install mentat --marketplace Art-Dar/mentat-ai-mcp
 ```
 
-When asked for **Mentat MCP server URL**, paste `https://<your-domain>/mcp/<secret>`. It is stored in your system's secure storage, not in any file in this repo. Run `/mcp` to check that `mentat` is connected.
+or in two steps, on older Claude Code versions:
+
+```
+/plugin marketplace add Art-Dar/mentat-ai-mcp
+/plugin install mentat@mentat-ai
+```
+
+When asked for **Mentat MCP server URL**, paste `https://<your-domain>/mcp/<secret>`. It is stored in your system's secure storage, not in any file in this repo. To change it later, run `/plugin configure mentat@mentat-ai`. Then run `/mcp` to check that `mentat` is connected.
+
+To try a local copy without installing it, run `claude --plugin-dir ./plugin` from the repo root.
 
 ## Configuration
 
@@ -202,6 +211,7 @@ src/
     search-knowledge/   schema, mapping, formatting, registration
     ask-knowledge/      same layout
     save-note/          schema and guard, /ingest call, status wait, title
+.claude-plugin/marketplace.json   this repo as a plugin marketplace, listing the plugin below
 plugin/
   .claude-plugin/plugin.json   plugin manifest; asks for the server URL as a masked setting
   .mcp.json                    the connector, using that setting
