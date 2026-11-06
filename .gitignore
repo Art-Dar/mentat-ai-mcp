@@ -30,8 +30,10 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
-# Environment variables
+# Environment variables: every .env file except the example
 .env
+.env.*
+!.env.example
 
 # TypeScript
 *.tsbuildinfo
