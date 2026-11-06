@@ -1,0 +1,16 @@
+{
+  "name": "mentat-ai",
+  "owner": {
+    "name": "Art-Dar"
+  },
+  "metadata": {
+    "description": "Claude plugin for Mentat, a personal knowledge base: search, cited answers and saving notes."
+  },
+  "plugins": [
+    {
+      "name": "mentat",
+      "source": "./plugin",
+      "description": "Search, ask and save to your Mentat knowledge base from Claude, with citations to the exact page."
+    }
+  ]
+}
