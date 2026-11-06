@@ -80,7 +80,7 @@ describe("request: responses", () => {
 describe("request: failures", () => {
   it("reads the backend error envelope", async () => {
     const { fetch } = fakeFetch(() =>
-      json({ error: { code: "unauthorized", message: "Token expired", request_id: "3f9c1e2a" } }, 401),
+        json({ error: { code: "unauthorized", message: "Token expired", request_id: "3f9c1e2a" } }, 401),
     );
     const error = await requester(fetch)(post).catch((e: unknown) => e);
 
@@ -113,7 +113,10 @@ describe("request: failures", () => {
     const { fetch } = fakeFetch(() => {
       throw new TypeError("fetch failed");
     });
-    await expect(requester(fetch)(post)).rejects.toBeInstanceOf(MentatUnavailableError);
+    const error = await requester(fetch)(post).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(MentatUnavailableError);
+    // Never reached the backend, so nothing can have happened there.
+    expect((error as MentatUnavailableError).timedOut).toBe(false);
   });
 
   it("never puts the token in an error message", async () => {
@@ -126,22 +129,24 @@ describe("request: failures", () => {
 describe("request: timeouts", () => {
   // A backend that never answers until the request is aborted.
   const hanging = () =>
-    fakeFetch(
-      ({ init }) =>
-        new Promise<Response>((_resolve, reject) => {
-          init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
-        }),
-    );
+      fakeFetch(
+          ({ init }) =>
+              new Promise<Response>((_resolve, reject) => {
+                init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+              }),
+      );
 
   it("times out instead of hanging", async () => {
     const error = await requester(hanging().fetch, { timeoutMs: 20 })(post).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(MentatUnavailableError);
     expect((error as Error).message).toContain("did not respond within 0.02s");
+    // Sent but unanswered: the backend may have acted on it.
+    expect((error as MentatUnavailableError).timedOut).toBe(true);
   });
 
   it("lets one call override the default timeout", async () => {
     const error = await requester(hanging().fetch, { timeoutMs: 10_000 })({ ...post, timeoutMs: 20 }).catch(
-      (e: unknown) => e,
+        (e: unknown) => e,
     );
     expect((error as Error).message).toContain("within 0.02s");
   });
