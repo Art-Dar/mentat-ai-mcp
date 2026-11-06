@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createMentatClient } from "../src/mentat/client.js";
 import { createServer } from "../src/server.js";
 import { ASK_KNOWLEDGE_NAME } from "../src/tools/ask-knowledge/schema.js";
+import { SAVE_NOTE_NAME } from "../src/tools/save-note/schema.js";
 import { SEARCH_KNOWLEDGE_NAME } from "../src/tools/search-knowledge/schema.js";
 import { fakeFetch, json, searchResponse } from "./fixtures.js";
 
@@ -29,13 +30,13 @@ async function search(c: Client, args: Record<string, unknown>) {
 }
 
 const textOf = (result: CallToolResult) =>
-  result.content.map((part) => (part.type === "text" ? part.text : "")).join("");
+    result.content.map((part) => (part.type === "text" ? part.text : "")).join("");
 
 describe("search_knowledge tool", () => {
-  it("is listed next to hello", async () => {
+  it("is listed next to the other tools", async () => {
     const c = await connect(fakeFetch(() => json(searchResponse())).fetch);
     const { tools } = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([ASK_KNOWLEDGE_NAME, "hello", SEARCH_KNOWLEDGE_NAME]);
+    expect(tools.map((t) => t.name).sort()).toEqual([ASK_KNOWLEDGE_NAME, "hello", SAVE_NOTE_NAME, SEARCH_KNOWLEDGE_NAME].sort());
   });
 
   it("returns mapped results as structured content", async () => {
@@ -87,7 +88,7 @@ describe("search_knowledge tool", () => {
 
   it("tells the model to reconnect when the token is rejected", async () => {
     const c = await connect(
-      fakeFetch(() => json({ error: { code: "unauthorized", message: "Token expired" } }, 401)).fetch,
+        fakeFetch(() => json({ error: { code: "unauthorized", message: "Token expired" } }, 401)).fetch,
     );
     const result = await search(c, { query: "q" });
 
@@ -97,13 +98,13 @@ describe("search_knowledge tool", () => {
 
   it("says a retry is safe when the backend is temporarily down", async () => {
     const c = await connect(
-      fakeFetch(() => json({ error: { code: "unavailable", message: "Embedding service unavailable", request_id: "ab12" } }, 503)).fetch,
+        fakeFetch(() => json({ error: { code: "unavailable", message: "Embedding service unavailable", request_id: "ab12" } }, 503)).fetch,
     );
     const result = await search(c, { query: "q" });
 
     expect(result.isError).toBe(true);
     expect(textOf(result)).toBe(
-      "Mentat search failed: Embedding service unavailable (request ab12). It is safe to try once more.",
+        "Mentat search failed: Embedding service unavailable (request ab12). It is safe to try once more.",
     );
   });
 
