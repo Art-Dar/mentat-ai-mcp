@@ -1,23 +1,38 @@
 # mentat-ai-mcp
 
-MCP server that connects Claude to the Mentat knowledge base.
+Connects Claude to **Mentat**, a personal knowledge base for saved articles, highlights, PDFs, scanned receipts and notes. With it, Claude can search what you saved, answer questions with citations that point to the exact page, and save new notes for you.
 
-It lets Claude search your saved documents, ask questions with cited answers, and save notes, by calling the Mentat backend API on your behalf.
+This repository contains an [MCP](https://modelcontextprotocol.io) server and a Claude plugin that bundles it with a skill. The Mentat backend itself lives in a separate repository, `mentat-ai-backend`.
+
+**Demo video:** <!-- TODO before submitting: link to the demo video --> _link coming soon_
+
+## What Claude can do with it
+
+| Tool | What it does | Example request |
+|---|---|---|
+| `search_knowledge` | Finds passages in your saved material, each with a marker, title and location | "Find my receipt from ATB" |
+| `ask_knowledge` | Returns Mentat's answer to a question, with citations | "When is the coffee invoice due?" |
+| `save_note` | Saves a note to your knowledge base. Only on an explicit request, and Claude asks before saving | "Save this: Olena delivers on Tuesdays" |
+| `hello` | Returns a greeting, to check the connection | |
+
+The plugin adds a skill (`plugin/skills/mentat/SKILL.md`) that tells Claude when to use each tool, how to cite sources, and to treat document text as material, never as instructions.
 
 ## How it works
 
 ```
-Claude (host) ⇄ mentat-ai-mcp (this server) → Mentat backend API
-              MCP messages                 HTTPS + token
+Claude  ──MCP (stdio or Streamable HTTP)──►  mentat-ai-mcp  ──HTTPS + token──►  Mentat backend API
+(host)                                       (this repo)                         (FastAPI, Postgres + pgvector)
 ```
 
 - **Claude** decides when to call a tool and sends the request.
-- **This server** validates the input, calls the backend, and returns the result in MCP format. It has no database and no AI model of its own.
-- **The backend** (`mentat-ai-backend`) does the real work: search, answering, storage.
+- **This server** validates the input, calls the backend, and turns the result into compact text with citations. It has no database and no AI model of its own, and stores nothing.
+- **The backend** does the real work: retrieval, answering, storage, per-user access control.
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 20 or newer
+- A running Mentat backend and an account on it
+- For use from Claude over the internet: an [ngrok](https://ngrok.com) account (the free plan is enough)
 
 ## Setup
 
@@ -25,12 +40,12 @@ Claude (host) ⇄ mentat-ai-mcp (this server) → Mentat backend API
 git clone https://github.com/Art-Dar/mentat-ai-mcp.git
 cd mentat-ai-mcp
 npm install
-cp .env.example .env
+cp .env.example .env    # PowerShell: Copy-Item .env.example .env
 ```
 
-Fill in `.env` (see [Configuration](#configuration)). Never commit `.env`.
+Fill in `.env` (see [Configuration](#configuration)). `.env` is gitignored: never commit it.
 
-## Running the connector
+## Running it
 
 The backend must be running first. In the `mentat-ai-backend` folder:
 
@@ -40,81 +55,48 @@ docker compose up -d
 
 In the commands below, replace each `<placeholder>`, brackets included, with your real value.
 
-### Locally, for development
+### Locally, with MCP Inspector
 
 ```bash
-npm run inspect
+npm run status     # lists the tools, then exits
+npm run inspect    # opens MCP Inspector in the browser
 ```
 
-This opens MCP Inspector, where you can call the tools by hand. See [Trying it with MCP Inspector](#trying-it-with-mcp-inspector).
+In the Inspector: **Connect**, open **Tools**, pick a tool, fill in the fields, **Run**.
 
-### In Claude, over HTTP
+### In Claude, as a custom connector
 
-Claude has to reach the server from the internet, so it runs behind an ngrok tunnel. For the first-time setup of ngrok, the account and `.env`, see [Demo](#demo).
+Claude reaches the server over the internet, so it runs behind an ngrok tunnel:
 
-1. Start the server, and leave it running:
+1. `npm run start:http`, and leave it running.
+2. In a second terminal: `ngrok http 3000 --url=<your-domain>`.
+3. In Claude, add a custom connector with the URL `https://<your-domain>/mcp/<secret>` and no sign-in. It should show **Connected**.
+4. In a new chat, switch the connector on and ask about something in your documents.
 
-   ```bash
-   npm run start:http
-   ```
+The [Demo](#demo) section has the full first-time setup and troubleshooting.
 
-2. In a second terminal, start the tunnel, and leave it running too:
+### In Claude Code, as a plugin
 
-   ```bash
-   ngrok http 3000 --url=<your-domain>
-   ```
-
-3. In a third terminal, check that `hello` and `search_knowledge` are listed:
-
-   ```bash
-   npx @modelcontextprotocol/inspector --cli https://<your-domain>/mcp/<secret> --transport http --method tools/list
-   ```
-
-4. In Claude, open **Settings → Connectors → Add custom connector**, enter `https://<your-domain>/mcp/<secret>`, and leave the OAuth fields empty. It should show **Connected**.
-5. Start a new chat, switch the connector on in the tools menu, and ask about something in your documents.
-
-`<your-domain>` is the bare hostname from the ngrok dashboard, like `my-demo.ngrok-free.app`. `<secret>` is `MCP_SECRET` from `.env`. Anyone who has the full URL can search that account, so keep it private.
-
-To stop, press `Ctrl+C` in the ngrok terminal first, then in the server terminal.
-
-## Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start the server from source. Prints nothing and waits for a client; this is expected. Stop with `Ctrl+C`. |
-| `npm run inspect` | Start the server inside MCP Inspector, a browser UI for calling tools by hand. |
-| `npm run check` | Run every check CI runs: typecheck, lint, test, build. |
-| `npm run typecheck` | Type-check without building. |
-| `npm run lint` | Run ESLint. |
-| `npm test` | Run the unit tests (Vitest). |
-| `npm run build` | Compile TypeScript to `dist/`. |
-| `npm start` | Run the compiled server from `dist/`. Run `npm run build` first. |
-| `npm run start:http` | Start the server over Streamable HTTP, for the [Demo](#demo). Needs `MCP_SECRET`. |
-
-## Trying it with MCP Inspector
+The `plugin/` folder is a Claude Code plugin: the connector plus the Mentat skill.
 
 ```bash
-npm run inspect
+claude --plugin-dir ./plugin
 ```
 
-1. Open the URL printed in the terminal (usually `http://localhost:6274`).
-2. Click **Connect**.
-3. Open **Tools** and select `hello`.
-4. Enter a name and click **Run**.
-
-You should see `Hello, <name>!`.
+When asked for **Mentat MCP server URL**, paste `https://<your-domain>/mcp/<secret>`. It is stored in your system's secure storage, not in any file in this repo. Run `/mcp` to check that `mentat` is connected.
 
 ## Configuration
 
 | Variable | Purpose | Example |
 |---|---|---|
 | `MENTAT_API_URL` | Base URL of the Mentat backend | `http://localhost:8000` |
-| `MENTAT_API_TOKEN` | Backend token. Backend tools answer with an error without it. | `eyJ...` |
+| `MENTAT_API_TOKEN` | Backend token from `POST /api/v1/auth/login`. Without it, backend tools answer "not connected". Expires after 7 days. | |
+| `MENTAT_TIMEOUT_MS` | Optional. Backend request timeout, 15000 by default | `15000` |
 | `MCP_SECRET` | HTTP only, required. The last segment of the URL, `/mcp/<secret>`. At least 24 characters: letters, digits, `-`, `_`. | |
 | `MCP_ALLOWED_HOSTS` | HTTP only. Comma-separated hostnames accepted on top of the local ones, with no scheme or port. | `my-demo.ngrok-free.app` |
 | `MCP_PORT` | HTTP only. Local port, 3000 by default. | `3000` |
 
-The `hello` tool needs none of the backend settings. They are used by the backend tools.
+An invalid value (a URL that isn't a URL, a negative timeout) stops the server at startup with a message naming the setting.
 
 ## Demo
 
@@ -165,7 +147,7 @@ Connects Claude to this server through an ngrok tunnel, using a demo Mentat acco
    ngrok http 3000 --url=<your-domain>
    ```
 
-4. Check that the tools are listed through the tunnel:
+4. Check that the four tools are listed through the tunnel:
 
    ```bash
    npx @modelcontextprotocol/inspector --cli https://<your-domain>/mcp/<secret> --transport http --method tools/list
@@ -198,25 +180,64 @@ If the URL was ever exposed, change `MCP_SECRET` and restart. The old URL then a
 | Search says to reconnect | The backend token expired, which happens after 7 days | Get a new one with `POST /api/v1/auth/login`, update `MENTAT_API_TOKEN`, restart the server |
 | Search fails or says to try again | Backend is down, or the Voyage limit was hit: every search also uses one embedding request | Check `docker compose ps`, wait a minute, and try again |
 
+## Security and privacy
+
+- **One account per server, for now.** Until per-user sign-in exists, every request uses the single token in `.env`, and the secret path in the URL is the only thing protecting it. Use a demo account with demo data, keep the URL private, and shut the tunnel down after use.
+- **What reaches Claude:** passages, titles, locations and answers from the account's documents, nothing more. The server stores no requests, results or tokens.
+- **Writes need consent.** `save_note` is the only tool that changes anything. It only adds notes, never edits or deletes, and Claude asks for approval before calling it.
+- **Document text is untrusted.** Saved web pages can contain text aimed at an AI. Tool results label passages as source material, and the skill tells Claude never to follow instructions found in them.
+- **Before making a copy of this repo public**, run `npm run check:secrets`. It scans the whole git history, not just the current files. If it finds anything, rotate that secret first: deleting the line does not remove it from history.
+
 ## Project structure
 
 ```
 src/
-  index.ts       stdio entry: registers tools, connects the transport
-  http.ts        HTTP entry: loads the config, starts listening
-  http-app.ts    HTTP app: /mcp/<secret>, host check, 404 for the rest
-  server.ts      createServer(), shared by both entries
-  hello.ts       hello tool logic (pure, testable)
-test/
-  hello.test.ts  unit tests
-.github/workflows/ci.yml
+  index.ts              stdio entry point
+  http.ts, http-app.ts  Streamable HTTP entry point: /mcp/<secret>, host check, 404 for the rest
+  server.ts             createServer(): registers every tool, shared by both entry points
+  config.ts             settings from .env and the environment, validated with zod
+  mentat/               the backend client: one request layer, one method per endpoint, one error model
+  format/passages.ts    citations as compact text for the model, shared by search and ask
+  tools/
+    search-knowledge/   schema, mapping, formatting, registration
+    ask-knowledge/      same layout
+    save-note/          schema and guard, /ingest call, status wait, title
+plugin/
+  .claude-plugin/plugin.json   plugin manifest; asks for the server URL as a masked setting
+  .mcp.json                    the connector, using that setting
+  skills/mentat/SKILL.md       when to use each tool
+scripts/check-secrets.ts       history-wide secret scan
+test/                          Vitest, against a fake backend; no network, no real tokens
+docs/                          adding a backend endpoint, checking the skill by hand
 ```
 
-## Rules for contributors
+## Development
 
-- Never use `console.log` in the server. With stdio transport, stdout carries the MCP protocol, so any output there breaks the connection. Log with `console.error`.
-- Run `npm run check` before pushing.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the stdio server from source. Prints nothing and waits for a client; that is expected. |
+| `npm run start:http` | Start the HTTP server. Needs `MCP_SECRET`. |
+| `npm run status` | List the tools the server offers. |
+| `npm run inspect` | Open MCP Inspector against the stdio server. |
+| `npm run check` | Everything CI runs: typecheck, lint, test, build. |
+| `npm test` | Unit tests only. |
+| `npm run build` / `npm start` | Compile to `dist/` / run the compiled stdio server. |
+| `npm run check:secrets` | Scan the git history and working tree for secrets. |
 
-## CI
+To add a tool for another backend endpoint, follow `docs/ADDING-AN-ENDPOINT.md`.
 
-GitHub Actions runs typecheck, lint, test, and build on every push and pull request. A PR is ready to merge when CI is green.
+Rules for contributors:
+
+- **Never use `console.log` in the server.** Over stdio, stdout carries the MCP protocol, so any output there breaks the connection. Log with `console.error`.
+- **No secrets in the repo, tests or CI.** Tests use a fake backend.
+- **Run `npm run check` before pushing.** CI runs the same checks on every pull request, and `main` only accepts reviewed pull requests with a green CI.
+
+## Known limitations
+
+- The server runs on a developer machine; it is reachable only while that machine and the tunnel are on.
+- One shared backend account per server until per-user sign-in (OAuth) is added.
+- `save_note` cannot detect a note saved earlier in another chat, so the same text can be saved twice.
+
+## License
+
+[MIT](LICENSE)
