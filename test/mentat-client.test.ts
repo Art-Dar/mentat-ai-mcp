@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createMentatClient } from "../src/mentat/client.js";
 import { MentatApiError, MentatContractError, MentatUnavailableError } from "../src/mentat/errors.js";
-import { askResponse, DOC_ID, fakeFetch, json, searchResponse } from "./fixtures.js";
+import { askResponse, DOC_ID, documentStatus, fakeFetch, ingestResponse, json, NOTE_ID, searchResponse } from "./fixtures.js";
 
 function client(fetch: typeof globalThis.fetch) {
   return createMentatClient({ baseUrl: "http://mentat.test", token: "t", fetch });
@@ -91,5 +91,52 @@ describe("MentatClient.ask", () => {
 
     expect(error).toBeInstanceOf(MentatApiError);
     expect((error as MentatApiError).retryable).toBe(true);
+  });
+});
+
+describe("MentatClient.ingest", () => {
+  it("POSTs the note to /api/v1/ingest", async () => {
+    const { fetch, calls } = fakeFetch(() => json(ingestResponse(), 201));
+    const result = await client(fetch).ingest({ source: "note", text: "Call Olena", title: "Supplier" });
+
+    expect(calls[0]?.url).toBe("http://mentat.test/api/v1/ingest");
+    expect(calls[0]?.init.method).toBe("POST");
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ source: "note", text: "Call Olena", title: "Supplier" });
+    expect(result).toEqual({ document_id: NOTE_ID, status: "pending" });
+  });
+
+  it("raises a contract error naming ingest when the id is missing", async () => {
+    const { fetch } = fakeFetch(() => json({ status: "pending" }, 201));
+    const error = await client(fetch).ingest({ source: "note", text: "x" }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(MentatContractError);
+    expect((error as Error).message).toContain("ingest response");
+  });
+});
+
+describe("MentatClient.documentStatus", () => {
+  it("GETs /api/v1/documents/{id} with no body", async () => {
+    const { fetch, calls } = fakeFetch(() => json(documentStatus()));
+    await client(fetch).documentStatus(NOTE_ID);
+
+    expect(calls[0]?.url).toBe(`http://mentat.test/api/v1/documents/${NOTE_ID}`);
+    expect(calls[0]?.init.method).toBe("GET");
+    expect(calls[0]?.init.body).toBeUndefined();
+  });
+
+  it("returns only the fields the connector reads", async () => {
+    const { fetch } = fakeFetch(() => json(documentStatus()));
+    expect(await client(fetch).documentStatus(NOTE_ID)).toEqual({
+      document_id: NOTE_ID,
+      status: "completed",
+      title: "Coffee supplier contacts",
+      error_message: null,
+      chunk_count: 1,
+    });
+  });
+
+  it("encodes the id, so it cannot change the path", async () => {
+    const { fetch, calls } = fakeFetch(() => json(documentStatus()));
+    await client(fetch).documentStatus("../search?x=1").catch(() => undefined);
+    expect(calls[0]?.url).toBe("http://mentat.test/api/v1/documents/..%2Fsearch%3Fx%3D1");
   });
 });
