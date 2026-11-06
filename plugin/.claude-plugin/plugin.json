@@ -1,0 +1,20 @@
+{
+  "name": "mentat",
+  "displayName": "Mentat",
+  "version": "0.1.0",
+  "description": "Search, ask and save to your Mentat knowledge base from Claude: saved articles, highlights, PDFs, scanned receipts and notes, with cited answers.",
+  "author": {
+    "name": "Daria Onishchenko, Artem Verbytskyi"
+  },
+  "repository": "https://github.com/Art-Dar/mentat-ai-mcp",
+  "keywords": ["mentat", "knowledge-base", "notes", "rag", "mcp"],
+  "userConfig": {
+    "mcp_url": {
+      "type": "string",
+      "title": "Mentat MCP server URL",
+      "description": "The full address of your Mentat MCP server, including its secret path: https://<your-domain>/mcp/<secret>. Stored in secure storage, never in settings.json.",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}
