@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "inspect": "npx @modelcontextprotocol/inspector tsx src/index.ts",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "check:secrets": "tsx scripts/check-secrets.ts"
   },
   "repository": {
     "type": "git",
@@ -20,7 +21,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "bugs": {
     "url": "https://github.com/Art-Dar/mentat-ai-mcp/issues"
