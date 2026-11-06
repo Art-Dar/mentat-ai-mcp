@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createHttpApp } from "../src/http-app.js";
 import { createMentatClient } from "../src/mentat/client.js";
 import { ASK_KNOWLEDGE_NAME } from "../src/tools/ask-knowledge/schema.js";
+import { SAVE_NOTE_NAME } from "../src/tools/save-note/schema.js";
 import { SEARCH_KNOWLEDGE_NAME } from "../src/tools/search-knowledge/schema.js";
 import { fakeFetch, json, searchResponse } from "./fixtures.js";
 
@@ -48,18 +49,18 @@ async function connect(port: number) {
 function send(port: number, opts: { path: string; method?: string; host?: string; body?: string }) {
   return new Promise<{ status: number | undefined; body: string }>((resolve, reject) => {
     const req = request(
-      {
-        port,
-        host: "127.0.0.1",
-        path: opts.path,
-        method: opts.method ?? "POST",
-        headers: { "content-type": "application/json", ...(opts.host ? { host: opts.host } : {}) },
-      },
-      (res) => {
-        let body = "";
-        res.on("data", (chunk) => (body += chunk));
-        res.on("end", () => resolve({ status: res.statusCode, body }));
-      },
+        {
+          port,
+          host: "127.0.0.1",
+          path: opts.path,
+          method: opts.method ?? "POST",
+          headers: { "content-type": "application/json", ...(opts.host ? { host: opts.host } : {}) },
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.on("end", () => resolve({ status: res.statusCode, body }));
+        },
     );
     req.on("error", reject);
     req.end(opts.body ?? "{}");
@@ -70,7 +71,7 @@ describe("HTTP transport", () => {
   it("lists the same tools as stdio", async () => {
     const c = await connect(await start());
     const { tools } = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([ASK_KNOWLEDGE_NAME, "hello", SEARCH_KNOWLEDGE_NAME]);
+    expect(tools.map((t) => t.name).sort()).toEqual([ASK_KNOWLEDGE_NAME, "hello", SAVE_NOTE_NAME, SEARCH_KNOWLEDGE_NAME].sort());
   });
 
   it("runs search_knowledge against the backend", async () => {

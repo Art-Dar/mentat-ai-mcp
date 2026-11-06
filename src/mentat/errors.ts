@@ -27,8 +27,11 @@ export class MentatApiError extends MentatError {
 }
 
 export class MentatUnavailableError extends MentatError {
-  constructor(message: string) {
+  readonly timedOut: boolean;
+
+  constructor(message: string, timedOut = false) {
     super(message, true);
+    this.timedOut = timedOut;
   }
 }
 

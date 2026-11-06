@@ -36,6 +36,37 @@ export const SearchResponseSchema = z.object({
 });
 export type SearchResponse = z.infer<typeof SearchResponseSchema>;
 
+export const INGEST_PATH = "/api/v1/ingest";
+
+export const IngestRequestBodySchema = z.object({
+  source: z.literal("note"),
+  text: z.string().min(1).max(1_000_000),
+  title: z.string().max(512).optional(),
+});
+export type IngestRequestBody = z.infer<typeof IngestRequestBodySchema>;
+
+export const IngestResponseSchema = z.object({
+  document_id: z.uuid(),
+  status: z.string(),
+})
+export type IngestResponse = z.infer<typeof IngestResponseSchema>;
+
+export const documentPath = (documentId: string) => `/api/v1/documents/${encodeURIComponent(documentId)}`;
+
+// Known statuses: pending | processing | completed | failed. A plain string
+// so a new status on the backend is not a parse failure.
+export const DocumentStatusSchema = z.object({
+  document_id: z.uuid(),
+  status: z.string(),
+  title: z.string().nullable(),
+  // Why processing failed; only set when status is "failed".
+  error_message: z.string().nullable(),
+  // Searchable only when > 0: "completed" with 0 chunks reached no index.
+  chunk_count: z.number().int(),
+});
+export type DocumentStatus = z.infer<typeof DocumentStatusSchema>;
+
+
 export const ASK_PATH = "/api/v1/ask";
 
 export const AskRequestBodySchema = z.object({

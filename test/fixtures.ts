@@ -62,6 +62,32 @@ export function askResponse(overrides: Record<string, unknown> = {}) {
   };
 }
 
+export const NOTE_ID = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+
+/** POST /api/v1/ingest answers 201 before processing starts. */
+export function ingestResponse(overrides: Record<string, unknown> = {}) {
+  return { document_id: NOTE_ID, status: "pending", ...overrides };
+}
+
+/** GET /api/v1/documents/{id}, including fields the connector does not read. */
+export function documentStatus(overrides: Record<string, unknown> = {}) {
+  return {
+    document_id: NOTE_ID,
+    source: "note",
+    status: "completed",
+    title: "Coffee supplier contacts",
+    error_message: null,
+    char_count: 120,
+    chunk_count: 1,
+    page_count: 0,
+    has_file: false,
+    language: "en",
+    created_at: "2026-11-06T10:00:00Z",
+    updated_at: "2026-11-06T10:00:02Z",
+    ...overrides,
+  };
+}
+
 export interface RecordedCall {
   url: string;
   init: RequestInit;
