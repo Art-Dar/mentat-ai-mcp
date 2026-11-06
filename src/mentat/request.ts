@@ -71,6 +71,7 @@ export function createRequester(options: RequesterOptions): Request {
         timedOut
           ? `Mentat did not respond within ${timeoutMs / 1000}s.`
           : "Could not reach the Mentat backend.",
+        timedOut
       );
     }
 
