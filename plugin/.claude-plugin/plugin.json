@@ -7,7 +7,14 @@
     "name": "Daria Onishchenko, Artem Verbytskyi"
   },
   "repository": "https://github.com/Art-Dar/mentat-ai-mcp",
-  "keywords": ["mentat", "knowledge-base", "notes", "rag", "mcp"],
+  "license": "MIT",
+  "keywords": [
+    "mentat",
+    "knowledge-base",
+    "notes",
+    "rag",
+    "mcp"
+  ],
   "userConfig": {
     "mcp_url": {
       "type": "string",
