@@ -9,12 +9,13 @@ import type { MentatClient } from "./mentat/client.js";
 import { registerAskKnowledge } from "./tools/ask-knowledge/register.js";
 import { registerSearchKnowledge } from "./tools/search-knowledge/register.js";
 import { registerSaveNote } from "./tools/save-note/register.js";
+import { MENTAT_ICON } from "./icon.js";
 
 export const SERVER_NAME = "mentat-ai-mcp";
 export const SERVER_VERSION = "0.1.0";
 
 export function createServer(deps: { mentat: MentatClient }): McpServer {
-  const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION, icons: [MENTAT_ICON] });
 
   server.registerTool(
     "hello",
