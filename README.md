@@ -1,4 +1,5 @@
 # mentat-ai-mcp
+[Jira Backlog](https://verbytskyiartem.atlassian.net/jira/software/projects/SB/boards/34/backlog)
 
 Connects Claude to **Mentat**, a personal knowledge base for saved articles, highlights, PDFs, scanned receipts and notes. With it, Claude can search what you saved, answer questions with citations that point to the exact page, and save new notes for you.
 
