@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to package, e.g. v2.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install, check and build
+        working-directory: extension
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm run build
+
+      - name: Package with commit id
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          test -d extension/dist
+          echo "$SHA" > extension/dist/COMMIT
+          (cd extension/dist && zip -qr "$GITHUB_WORKSPACE/mentat-extension-${TAG}-${SHA:0:7}.zip" .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mentat-extension-${{ env.TAG }}
+          path: mentat-extension-*.zip
+          retention-days: 90
+
+      - name: Attach to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "$TAG" \
+              --notes "Built from commit $(git rev-parse HEAD)"
+          gh release upload "$TAG" mentat-extension-*.zip --clobber
